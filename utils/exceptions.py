@@ -1,0 +1,2 @@
+class WrongMoveException(Exception):
+    pass
