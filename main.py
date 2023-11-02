@@ -8,6 +8,8 @@ from __future__ import annotations
 from utils.exceptions import WrongMoveException
 from utils.types import NodeType
 
+MAP_LENGTH = 8
+
 
 class Node:
     __x: int
@@ -18,12 +20,16 @@ class Node:
     __h: int  # Distance to goal node
     __f: int  # Total cost
 
-    def __init__(self, x: int, y: int, type_: NodeType = None):
+    __neighbors: list[Node]  # Neighbors of this Node
+    __map: Map
+
+    def __init__(self, x: int, y: int, field: Map, type_: NodeType = None):
         """
                Represents a node on the map.
                Args:
                    x (int): X-coordinate.
                    y (int): Y-coordinate.
+                   field (Map): field with all nodes.
                    type_ (NodeType): Type of the node.
                """
         self.__x = x
@@ -35,6 +41,21 @@ class Node:
 
         self.__g = 0
         self.__h = 0
+        self.__f = 0
+
+        # add neighbours
+        self.__neighbors = []
+
+        neighbor_x = self.x
+        neighbor_y = self.y
+        if neighbor_x + 1 <= MAP_LENGTH:
+            self.__neighbors.append(field.get_node(neighbor_x + 1, neighbor_y))
+        if neighbor_x - 1 >= 0:
+            self.__neighbors.append(field.get_node(neighbor_x - 1, neighbor_y))
+        if neighbor_y + 1 <= MAP_LENGTH:
+            self.__neighbors.append(field.get_node(neighbor_x, neighbor_y + 1))
+        if neighbor_y - 1 >= 0:
+            self.__neighbors.append(field.get_node(neighbor_x, neighbor_y - 1))
 
     def add_info(self, type_: NodeType) -> None:
         """Add information about the node type."""
@@ -69,6 +90,10 @@ class Node:
     def h(self) -> int:
         """Get the heuristic distance to the goal node (h) of the node."""
         return self.__h
+
+    @property
+    def neighbors(self) -> list[Node]:
+        return self.__neighbors
 
     def __repr__(self):
         return f'Node{{X={self.__x};Y={self.__y};Info:[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
@@ -158,7 +183,7 @@ class Map:
             stone (tuple[int, int]): Initial coordinates of the stone.
         """
         self.thanos = Thanos(perception_type)
-        self.__map = [[Node(x, y) for y in range(0, 9)] for x in range(0, 9)]
+        self.__map = [[Node(x, y) for y in range(0, MAP_LENGTH + 1)] for x in range(0, MAP_LENGTH + 1)]
         self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
         self.__steps = 0
         self.__stone_coords = stone
@@ -184,8 +209,8 @@ class Map:
         Returns:
             Node: The node at the specified coordinates.
         """
-        if (not 0 <= x <= 9) or (not 0 <= y <= 9):
-            raise IndexError(f"Map is 8x8, Point ({x}, {y}) is out of bounds")
+        if (not 0 <= x <= MAP_LENGTH + 1) or (not 0 <= y <= MAP_LENGTH + 1):
+            raise IndexError(f"Map is {MAP_LENGTH}x{MAP_LENGTH}, Point ({x}, {y}) is out of bounds")
 
         return self.__map[x][y]
 
