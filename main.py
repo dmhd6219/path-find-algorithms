@@ -6,11 +6,23 @@
 from __future__ import annotations
 
 import heapq
-
-from utils.exceptions import WrongMoveException
-from utils.types import NodeType
+import enum
 
 MAP_LENGTH = 8
+
+
+class WrongMoveException(Exception):
+    pass
+
+
+class NodeType(enum.Enum):
+    EMPTY = "."
+    PERCEPTION = "P"
+    HULK = "H"
+    THOR = "T"
+    CAPTAIN = "M"
+    SHIELD = "S"
+    STONE = "I"
 
 
 class Node:
@@ -24,6 +36,8 @@ class Node:
 
     __parent: Node | None
     __map: Map
+
+    __visited: bool
 
     def __init__(self, x: int, y: int):
         """
@@ -41,6 +55,7 @@ class Node:
         self.__f = 0
 
         self.__parent = None
+        self.__visited = False
 
     def add_info(self, type_: NodeType) -> None:
         """
@@ -50,6 +65,21 @@ class Node:
             type_ (NodeType): The type of the node.
         """
         self.__type.append(type_)
+
+    def is_character(self) -> bool:
+        return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(self.__type))
+
+    def is_perception(self) -> bool:
+        return NodeType.PERCEPTION in self.__type
+
+    def is_stone(self) -> bool:
+        return NodeType.STONE in self.__type
+
+    def is_shield(self) -> bool:
+        return NodeType.SHIELD in self.__type
+
+    def is_empty(self) -> bool:
+        return len(self.__type) == 0
 
     @staticmethod
     def heuristics(node1: Node, node2: Node) -> int:
@@ -64,6 +94,13 @@ class Node:
             int: Heuristic distance between the two nodes.
         """
         return abs(node1.x - node2.x) + abs(node1.y - node2.y)
+
+    @property
+    def visited(self) -> bool:
+        return self.__visited
+
+    def visit(self) -> None:
+        self.__visited = True
 
     @property
     def x(self) -> int:
@@ -167,6 +204,16 @@ class Thanos:
         self.__has_shield = False
 
         self.__perception_type = perception_type
+
+    def get_perception_moves(self) -> list[tuple[int, int]]:
+        if self.__perception_type == 1:
+            return [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+
+        if self.__perception_type == 2:
+            return [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-2, 2), (2, 2), (2, -2),
+                    (-2, -2)]
+
+        return []
 
     @property
     def perception_type(self) -> int:
@@ -312,11 +359,27 @@ class Map:
         new_x = self.__thanos.x + delta_x
         new_y = self.__thanos.y + delta_y
 
-        if 0 <= new_x <= MAP_LENGTH and 0 <= new_y <= MAP_LENGTH:
-            new_node = self.get_node(new_x, new_y)
-            return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(new_node.type))
+        if not (0 <= new_x <= MAP_LENGTH) or not (0 <= new_y <= MAP_LENGTH):
+            return False
 
-        return False
+        for thanos_perception_move in self.__thanos.get_perception_moves():
+            thanos_perception_x = thanos_perception_move[0]
+            thanos_perception_y = thanos_perception_move[1]
+            thanos_perception_node = self.get_node(thanos_perception_x, thanos_perception_y)
+
+            if thanos_perception_node.is_perception() or thanos_perception_node.is_character():
+                return False
+
+        return True
+
+    def get_possible_moves(self) -> list[tuple[int, int]]:
+        moves = []
+        for delta_x in range(-1, 2):
+            for delta_y in range(-1, 2):
+                if self.is_safe_move(delta_x, delta_y):
+                    moves.append((delta_x, delta_y))
+
+        return moves
 
     def astar_search(self):
         """
@@ -341,18 +404,20 @@ class Map:
                 while current_node is not None:
                     path.append((current_node.x, current_node.y))
                     current_node = current_node.parent
+                self.end_game(len(path))
                 return path[::-1]
 
             closed_set.add(current_node)
 
             neighbors = []
-            for dx in range(-1, 2):
-                for dy in range(-1, 2):
-                    if not self.is_safe_move(dx, dy):
-                        continue
+            for move in self.get_possible_moves():
+                move_x = self.__thanos.x + move[0]
+                move_y = self.__thanos.y + move[1]
 
-                    neighbor = Node(self.__thanos.x + dx, self.__thanos.y + dy)
-                    neighbors.append(neighbor)
+                self.make_turn(move_x, move_y)
+
+                neighbor = Node(move_x, move_y)
+                neighbors.append(neighbor)
 
             for neighbor in neighbors:
                 if neighbor in closed_set:
@@ -382,12 +447,27 @@ class Map:
     def backtracking_search(self):
         pass
 
+    def end_game(self, turns: int = -1) -> None:
+        print(f"e {turns}")
+        exit(0)
+
+    def make_turn(self, turn_x: int, turn_y: int):
+        print(f"m {turn_x} {turn_y}")
+
+        response = int(input())
+        for _ in range(response):
+            info_x, info_y, info_status = input().split()
+            self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+
 
 def main() -> None:
     perception_type = int(input())
     x, y = [int(x) for x in input().split()]
 
     field = Map(perception_type, (x, y))
+    print("m 0 0")
+
+    field.astar_search()
 
 
 main()
