@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+import heapq
+
 from utils.exceptions import WrongMoveException
 from utils.types import NodeType
 
@@ -20,80 +22,122 @@ class Node:
     __h: int  # Distance to goal node
     __f: int  # Total cost
 
-    __neighbors: list[Node]  # Neighbors of this Node
+    __parent: Node | None
     __map: Map
 
-    def __init__(self, x: int, y: int, field: Map, type_: NodeType = None):
+    def __init__(self, x: int, y: int):
         """
-               Represents a node on the map.
-               Args:
-                   x (int): X-coordinate.
-                   y (int): Y-coordinate.
-                   field (Map): field with all nodes.
-                   type_ (NodeType): Type of the node.
-               """
+        Represents a node on the map.
+        Args:
+            x (int): X-coordinate.
+            y (int): Y-coordinate.
+        """
         self.__x = x
         self.__y = y
         self.__type = []
-
-        if type_ is not None:
-            self.__type.append(type_)
 
         self.__g = 0
         self.__h = 0
         self.__f = 0
 
-        # add neighbours
-        self.__neighbors = []
-
-        neighbor_x = self.x
-        neighbor_y = self.y
-        if neighbor_x + 1 <= MAP_LENGTH:
-            self.__neighbors.append(field.get_node(neighbor_x + 1, neighbor_y))
-        if neighbor_x - 1 >= 0:
-            self.__neighbors.append(field.get_node(neighbor_x - 1, neighbor_y))
-        if neighbor_y + 1 <= MAP_LENGTH:
-            self.__neighbors.append(field.get_node(neighbor_x, neighbor_y + 1))
-        if neighbor_y - 1 >= 0:
-            self.__neighbors.append(field.get_node(neighbor_x, neighbor_y - 1))
+        self.__parent = None
 
     def add_info(self, type_: NodeType) -> None:
-        """Add information about the node type."""
+        """
+        Add information about the node type.
+
+        Args:
+            type_ (NodeType): The type of the node.
+        """
         self.__type.append(type_)
 
     @staticmethod
     def heuristics(node1: Node, node2: Node) -> int:
-        """Calculate heuristic distance between two nodes."""
+        """
+        Calculate heuristic distance between two nodes.
+
+        Args:
+            node1 (Node): The first node.
+            node2 (Node): The second node.
+
+        Returns:
+            int: Heuristic distance between the two nodes.
+        """
         return abs(node1.x - node2.x) + abs(node1.y - node2.y)
 
     @property
     def x(self) -> int:
-        """Get the X-coordinate of the node."""
+        """
+        Get the X-coordinate of the node.
+
+        Returns:
+            int: The X-coordinate.
+        """
         return self.__x
 
     @property
     def y(self) -> int:
-        """Get the Y-coordinate of the node."""
+        """
+        Get the Y-coordinate of the node.
+
+        Returns:
+            int: The Y-coordinate.
+        """
         return self.__y
 
     @property
     def f(self) -> int:
-        """Get the total cost (f) of the node."""
-        return self.__g + self.__h
+        """
+       Get the total cost (f) of the node.
+
+       Returns:
+           int: The total cost (f).
+       """
+        return self.__f
+
+    @f.setter
+    def f(self, value: int):
+        self.__f = value
 
     @property
     def g(self) -> int:
-        """Get the distance to the start node (g) of the node."""
+        """
+        Get the distance to the start node (g) of the node.
+
+        Returns:
+            int: The distance to the start node (g).
+        """
         return self.__g
+
+    @g.setter
+    def g(self, value: int):
+        self.__g = value
 
     @property
     def h(self) -> int:
-        """Get the heuristic distance to the goal node (h) of the node."""
+        """
+        Get the heuristic distance to the goal node (h) of the node.
+
+        Returns:
+            int: The heuristic distance to the goal node (h).
+        """
         return self.__h
 
+    @h.setter
+    def h(self, value: int):
+        self.__h = value
+
     @property
-    def neighbors(self) -> list[Node]:
-        return self.__neighbors
+    def parent(self) -> Node | None:
+        return self.__parent
+
+    @parent.setter
+    def parent(self, value: Node):
+        self.__parent = value
+
+    @property
+    def type(self) -> list[NodeType]:
+        return self.__type
 
     def __repr__(self):
         return f'Node{{X={self.__x};Y={self.__y};Info:[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
@@ -131,21 +175,38 @@ class Thanos:
 
     @property
     def x(self) -> int:
-        """Get the X-coordinate of Thanos."""
+        """
+        Get the X-coordinate of Thanos.
+
+        Returns:
+            int: The X-coordinate.
+        """
         return self.__x
 
     @property
     def y(self) -> int:
-        """Get the Y-coordinate of Thanos."""
+        """
+        Get the Y-coordinate of Thanos.
+
+        Returns:
+            int: The Y-coordinate.
+        """
         return self.__y
 
     @property
     def has_shield(self):
-        """Check if Thanos has a shield."""
+        """
+        Check if Thanos has a shield.
+
+        Returns:
+            bool: True if Thanos has a shield, False otherwise.
+        """
         return self.__has_shield
 
     def give_shield(self):
-        """Give a shield to Thanos."""
+        """
+        Give a shield to Thanos.
+        """
         self.__has_shield = True
 
     def move(self, delta_x: int, delta_y: int) -> tuple[int, int]:
@@ -159,7 +220,7 @@ class Thanos:
         Returns:
             tuple[int, int]: New X and Y coordinates of Thanos after the move.
         """
-        if not (-1 <= delta_x + delta_y <= 1):
+        if abs(delta_x + delta_y) >= 1:
             raise WrongMoveException("Thanos can go only at neighbour coordinated")
 
         self.__x += delta_x
@@ -182,7 +243,7 @@ class Map:
             perception_type (int): The perception type of Thanos.
             stone (tuple[int, int]): Initial coordinates of the stone.
         """
-        self.thanos = Thanos(perception_type)
+        self.__thanos = Thanos(perception_type)
         self.__map = [[Node(x, y) for y in range(0, MAP_LENGTH + 1)] for x in range(0, MAP_LENGTH + 1)]
         self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
         self.__steps = 0
@@ -195,7 +256,12 @@ class Map:
 
     @property
     def steps(self):
-        """Get the number of steps taken in the game."""
+        """
+        Get the number of steps taken in the game.
+
+        Returns:
+            int: The number of steps.
+        """
         return self.__steps
 
     def get_node(self, x: int, y: int):
@@ -225,11 +291,95 @@ class Map:
         Returns:
             Node: The node that Thanos moved to.
         """
-        move_coords = self.thanos.move(delta_x, delta_y)
+        move_coords = self.__thanos.move(delta_x, delta_y)
         self.__steps += 1
         return self.__map[move_coords[0]][move_coords[1]]
 
+    def is_safe_move(self, delta_x: int, delta_y: int) -> bool:
+        """
+        Check if a move for Thanos is safe.
+
+        Args:
+            delta_x (int): Change in X-coordinate.
+            delta_y (int): Change in Y-coordinate.
+
+        Returns:
+            bool: True if the move is safe, otherwise False.
+                """
+        if delta_x == 0 and delta_y == 0:
+            return False
+
+        new_x = self.__thanos.x + delta_x
+        new_y = self.__thanos.y + delta_y
+
+        if 0 <= new_x <= MAP_LENGTH and 0 <= new_y <= MAP_LENGTH:
+            new_node = self.get_node(new_x, new_y)
+            return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(new_node.type))
+
+        return False
+
     def astar_search(self):
+        """
+                Perform an A* search algorithm to find the path to the stone.
+        """
+        start_node = Node(self.__thanos.x, self.__thanos.y)
+        end_node = Node(self.__stone_coords[0], self.__stone_coords[1])
+
+        # priority queue
+        open_list = []
+        heapq.heappush(open_list, start_node)
+
+        # visited nodes
+        closed_set = set()
+
+        while open_list:
+            # get node with smallest f
+            current_node = heapq.heappop(open_list)
+
+            if current_node == end_node:
+                path = []
+                while current_node is not None:
+                    path.append((current_node.x, current_node.y))
+                    current_node = current_node.parent
+                return path[::-1]
+
+            closed_set.add(current_node)
+
+            neighbors = []
+            for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    if not self.is_safe_move(dx, dy):
+                        continue
+
+                    neighbor = Node(self.__thanos.x + dx, self.__thanos.y + dy)
+                    neighbors.append(neighbor)
+
+            for neighbor in neighbors:
+                if neighbor in closed_set:
+                    continue
+
+                new_g = current_node.g + 1
+
+                if neighbor in open_list:
+
+                    if new_g < neighbor.g:
+                        neighbor.g = new_g
+                        neighbor.h = Node.heuristics(end_node, neighbor)
+                        neighbor.f = neighbor.g + neighbor.h
+                        neighbor.parent = current_node
+
+                        heapq.heapify(open_list)
+                else:
+
+                    neighbor.g = new_g
+                    neighbor.h = Node.heuristics(end_node, neighbor)
+                    neighbor.f = neighbor.g + neighbor.h
+                    neighbor.parent = current_node
+                    heapq.heappush(open_list, neighbor)
+
+        return None
+
+    def backtracking_search(self):
         pass
 
 
