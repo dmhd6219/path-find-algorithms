@@ -176,8 +176,11 @@ class Node:
     def type(self) -> list[NodeType]:
         return self.__type
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Node{{X={self.__x};Y={self.__y};Info:[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
+
+    def __hash__(self) -> int:
+        return self.__x * 100 + self.__y
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
@@ -214,6 +217,10 @@ class Thanos:
                     (-2, -2)]
 
         return []
+
+    def get_perception_coords(self) -> list[tuple[int, int]]:
+        return [(x[0] + self.x, x[1] + self.y) for x in self.get_perception_moves() if
+                0 <= x[0] + self.x <= MAP_LENGTH and 0 <= x[1] + self.y <= MAP_LENGTH]
 
     @property
     def perception_type(self) -> int:
@@ -362,7 +369,7 @@ class Map:
         if not (0 <= new_x <= MAP_LENGTH) or not (0 <= new_y <= MAP_LENGTH):
             return False
 
-        for thanos_perception_move in self.__thanos.get_perception_moves():
+        for thanos_perception_move in self.__thanos.get_perception_coords():
             thanos_perception_x = thanos_perception_move[0]
             thanos_perception_y = thanos_perception_move[1]
             thanos_perception_node = self.get_node(thanos_perception_x, thanos_perception_y)
