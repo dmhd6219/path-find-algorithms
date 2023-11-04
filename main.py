@@ -40,6 +40,7 @@ class Node:
     __map: Map
 
     __visited: bool
+    _neighbors: list[Node]
 
     def __init__(self, x: int, y: int):
         """
@@ -58,6 +59,8 @@ class Node:
 
         self.__parent = None
         self.__visited = False
+
+        self.__neighbors = []
 
     def add_info(self, type_: NodeType) -> None:
         """
@@ -96,6 +99,17 @@ class Node:
             int: Heuristic distance between the two nodes.
         """
         return abs(node1.x - node2.x) + abs(node1.y - node2.y)
+
+    @property
+    def neighbors(self) -> list[Node]:
+        return self.__neighbors
+
+    def add_neighbor(self, neighbor: Node) -> list[Node]:
+        if neighbor.__class__ != Node:
+            raise ValueError("Neighbor should be only Node class instance")
+
+        self.__neighbors.append(neighbor)
+        return self.__neighbors
 
     @property
     def visited(self) -> bool:
@@ -311,6 +325,20 @@ class Map:
         """
         self.__thanos = Thanos(perception_type)
         self.__map = [[Node(x, y) for y in range(0, MAP_LENGTH + 1)] for x in range(0, MAP_LENGTH + 1)]
+
+        # add neighbors to every node
+        for i in self.__map:
+            for j in i:
+                neighbor_x = j.x
+                neighbor_y = j.y
+                if neighbor_x + 1 <= MAP_LENGTH:
+                    j.add_neighbor(self.get_node(neighbor_x + 1, neighbor_y))
+                if neighbor_x - 1 >= 0:
+                    j.add_neighbor(self.get_node(neighbor_x - 1, neighbor_y))
+                if neighbor_y + 1 <= MAP_LENGTH:
+                    j.add_neighbor(self.get_node(neighbor_x, neighbor_y + 1))
+                if neighbor_y - 1 >= 0:
+                    j.add_neighbor(self.get_node(neighbor_x, neighbor_y - 1))
 
         self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
         self.__steps = 0
