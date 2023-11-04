@@ -72,19 +72,19 @@ class Node:
         self.__type.append(type_)
 
     def is_character(self) -> bool:
-        return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(self.__type))
+        return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(self.type))
 
     def is_perception(self) -> bool:
-        return NodeType.PERCEPTION in self.__type
+        return NodeType.PERCEPTION in self.type
 
     def is_stone(self) -> bool:
-        return NodeType.STONE in self.__type
+        return NodeType.STONE in self.type
 
     def is_shield(self) -> bool:
-        return NodeType.SHIELD in self.__type
+        return NodeType.SHIELD in self.type
 
     def is_empty(self) -> bool:
-        return len(self.__type) == 0
+        return len(self.type) == 0
 
     @staticmethod
     def heuristics(node1: Node, node2: Node) -> int:
@@ -279,32 +279,24 @@ class Thanos:
         """
         self.__has_shield = True
 
-    def move(self, delta_x: int, delta_y: int, delta: bool = True) -> tuple[int, int]:
+    def move(self, move_x: int, move_y: int) -> tuple[int, int]:
         """
         Move Thanos to a neighboring position on the map.
 
         Args:
-            delta_x (int): Change in X-coordinate.
-            delta_y (int): Change in Y-coordinate.
+            move_x (int): Change in X-coordinate.
+            move_y (int): Change in Y-coordinate.
 
         Returns:
             tuple[int, int]: New X and Y coordinates of Thanos after the move.
         """
-        if delta:
-            if abs(delta_x) + abs(delta_y) > 1:
-                logging.error(f"Tried to move on [{delta_x};{delta_y}]")
-                raise WrongMoveException("Thanos can go only at neighbour coordinated")
 
-            self.__x += delta_x
-            self.__y += delta_y
+        if (abs(abs(move_x) - abs(self.x))) + (abs(abs(move_y) - abs(self.y))) > 1:
+            logging.error(f"Tried to move from [{self.x};{self.y}] to [{move_x};{move_y}]")
+            raise WrongMoveException("Thanos can go only at neighbour coordinated")
 
-        else:
-            if (abs(abs(delta_x) - abs(self.x))) + (abs(abs(delta_y) - abs(self.y))) > 1:
-                logging.error(f"Tried to move from [{self.x};{self.y}] to [{delta_x};{delta_y}]")
-                raise WrongMoveException("Thanos can go only at neighbour coordinated")
-
-            self.__x = delta_x
-            self.__y = delta_y
+        self.__x = move_x
+        self.__y = move_y
 
         return self.__x, self.__y
 
@@ -375,18 +367,18 @@ class Map:
 
         return self.__map[x][y]
 
-    def move_thanos(self, delta_x: int, delta_y: int) -> Node:
+    def move_thanos(self, move_x: int, move_y: int) -> Node:
         """
         Move Thanos on the map and return the node he moved to.
 
         Args:
-            delta_x (int): Change in X-coordinate.
-            delta_y (int): Change in Y-coordinate.
+            move_x (int): Change in X-coordinate.
+            move_y (int): Change in Y-coordinate.
 
         Returns:
             Node: The node that Thanos moved to.
         """
-        move_coords = self.__thanos.move(delta_x, delta_y)
+        move_coords = self.__thanos.move(move_x, move_y)
         self.__steps += 1
         return self.__map[move_coords[0]][move_coords[1]]
 
@@ -407,23 +399,13 @@ class Map:
         if abs(delta_x) + abs(delta_y) > 1:
             return False
 
-        new_x = self.__thanos.x + delta_x
-        new_y = self.__thanos.y + delta_y
+        new_x = self.thanos.x + delta_x
+        new_y = self.thanos.y + delta_y
 
         if not (0 <= new_x <= MAP_LENGTH) or not (0 <= new_y <= MAP_LENGTH):
             return False
 
         new_node = self.get_node(new_x, new_y)
-        # if new_node.visited:
-        #     return False
-
-        # for thanos_perception_move in self.__thanos.get_perception_coords():
-        #     thanos_perception_x = thanos_perception_move[0]
-        #     thanos_perception_y = thanos_perception_move[1]
-        #     thanos_perception_node = self.get_node(thanos_perception_x, thanos_perception_y)
-        #
-        #     if thanos_perception_node.is_perception() or thanos_perception_node.is_character():
-        #         return False
 
         if new_node.is_perception() or new_node.is_character():
             return False
@@ -437,25 +419,6 @@ class Map:
                     moves.append((delta_x, delta_y))
 
         return moves
-
-    def return_to_start(self, end_node: Node):
-        logging.debug("------")
-        logging.debug(f"moving back, from [{end_node.x};{end_node.y}]")
-
-        end_node.visit()
-        prev_node = end_node
-        end_node = end_node.parent
-
-        while end_node != Node(0, 0):
-            logging.debug(f"moving back, [{prev_node.x};{prev_node.y}]->[{end_node.x};{end_node.y}]")
-            self.make_turn(end_node.x, end_node.y, False)
-            prev_node = end_node
-            end_node = end_node.parent
-
-        logging.debug(f"moving back, [{prev_node.x};{prev_node.y}]->[{end_node.x};{end_node.y}]")
-        self.make_turn(end_node.x, end_node.y, False)
-
-        logging.debug("---------")
 
     def get_path(self, start_node: Node, end_node: Node) -> list[Node]:
         to_start = []
@@ -479,9 +442,9 @@ class Map:
         logging.debug(f"REQUESTED PATH : from {start_node} to {end_node} : {path}")
         return path
 
-    def move_on_track(self, path: list[Node]) -> None:
+    def move_on_path(self, path: list[Node]) -> None:
         for node in path:
-            self.make_turn(node.x, node.y, False)
+            self.make_turn(node.x, node.y)
 
     def astar_search(self, start_node: Node, end_node: Node) -> list[tuple[int, int]]:
         """
@@ -501,10 +464,10 @@ class Map:
             # get node with smallest f
             current_node = heapq.heappop(open_list)
             if current_node not in start_node.neighbors:
-                path = self.get_path(self.get_node(self.__thanos.x, self.__thanos.y), current_node)
-                self.move_on_track(path)
+                path = self.get_path(self.get_node(self.thanos.x, self.thanos.y), current_node)
+                self.move_on_path(path)
             else:
-                self.make_turn(current_node.x, current_node.y, False)
+                self.make_turn(current_node.x, current_node.y)
 
             if current_node == end_node:
                 path = []
@@ -518,8 +481,8 @@ class Map:
 
             neighbors = []
             for move in self.get_possible_moves():
-                move_x = self.__thanos.x + move[0]
-                move_y = self.__thanos.y + move[1]
+                move_x = self.thanos.x + move[0]
+                move_y = self.thanos.y + move[1]
 
                 neighbor = self.get_node(move_x, move_y)
                 neighbors.append(neighbor)
@@ -564,17 +527,13 @@ class Map:
                 neighbor.parent = node
                 self.dfs(neighbor, visited)
 
-    def end_game(self, turns: int = -1) -> None:
+    def end_game(self, turns: int = -1) -> int:
         print(f"e {turns}")
-        exit(0)
+        return turns
 
-    def make_turn(self, delta_x: int, delta_y: int, delta: bool = True):
-        if delta:
-            turn_node = self.get_node(self.__thanos.x + delta_x, self.__thanos.y + delta_y)
-            self.__thanos.move(delta_x, delta_y)
-        else:
-            turn_node = self.get_node(delta_x, delta_y)
-            self.__thanos.move(delta_x, delta_y, delta=False)
+    def make_turn(self, move_x: int, move_y: int):
+        turn_node = self.get_node(move_x, move_y)
+        self.__thanos.move(move_x, move_y)
 
         turn_node.visit()
 
@@ -593,19 +552,24 @@ class Map:
             self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
         logging.debug(f"RESPONSE GOT for [{turn_node.x};{turn_node.y}] : {logging_string}")
 
+    @property
+    def thanos(self):
+        return self.__thanos
+
 
 def main() -> None:
     perception_type = int(input())
     x, y = [int(x) for x in input().split()]
 
     field = Map(perception_type, (x, y))
-    field.make_turn(0, 0)
 
     field.dfs(field.get_node(0, 0))
 
     path = field.astar_search(field.get_node(0, 0), field.get_node(x, y))
     logging.info(f"GAME ENDED, PATH : {path}")
 
-    field.end_game(len(path) if path else -1)
+    field.end_game(len(path) - 1 if path else -1)
 
-main()
+
+if __name__ == "__main__":
+    main()
