@@ -407,7 +407,7 @@ class Map:
 
         new_node = self.get_node(new_x, new_y)
 
-        if new_node.is_perception() or new_node.is_character():
+        if new_node.is_character() or (new_node.is_perception() and not self.thanos.has_shield):
             return False
         return True
 
@@ -552,12 +552,22 @@ class Map:
             response = input()
             logging_string += f"{response};"
             info_x, info_y, info_status = response.split()
-            self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+
+            node_type = NodeType(info_status)
+            match node_type:
+                case NodeType.EMPTY:
+                    pass
+                case NodeType.SHIELD:
+                    self.__thanos.give_shield()
+                case _:
+                    self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+
         logging.debug(f" got response for [{turn_node.x};{turn_node.y}] : {logging_string}")
 
-    @property
-    def thanos(self):
-        return self.__thanos
+
+@property
+def thanos(self):
+    return self.__thanos
 
 
 def main() -> None:
