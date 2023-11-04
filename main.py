@@ -457,11 +457,36 @@ class Map:
 
         logging.debug("---------")
 
-    def astar_search(self, end_node: Node):
+    def get_path(self, start_node: Node, end_node: Node) -> list[Node]:
+        to_start = []
+        from_start = []
+
+        current_node = start_node.parent
+        while current_node:
+            to_start.append(current_node)
+            current_node = current_node.parent
+
+        current_node = end_node.parent
+        while current_node:
+            from_start.append(current_node)
+            current_node = current_node.parent
+
+        from_start.reverse()
+
+        path = to_start + from_start
+        path.append(end_node)
+
+        logging.debug(f"REQUESTED PATH : from {start_node} to {end_node} : {path}")
+        return path
+
+    def move_on_track(self, path: list[Node]) -> None:
+        for node in path:
+            self.make_turn(node.x, node.y, False)
+
+    def astar_search(self, start_node: Node, end_node: Node) -> list[tuple[int, int]]:
         """
                 Perform an A* search algorithm to find the path to the stone.
         """
-        start_node = self.get_node(self.__thanos.x, self.__thanos.y)
         current_node = start_node
 
         # priority queue
@@ -475,9 +500,9 @@ class Map:
             start_node = current_node
             # get node with smallest f
             current_node = heapq.heappop(open_list)
-            if (current_node not in start_node.neighbors) and (current_node != start_node):
-                self.return_to_start(start_node)
-                self.astar_search(current_node)
+            if current_node not in start_node.neighbors:
+                path = self.get_path(self.get_node(self.__thanos.x, self.__thanos.y), current_node)
+                self.move_on_track(path)
             else:
                 self.make_turn(current_node.x, current_node.y, False)
 
@@ -500,7 +525,7 @@ class Map:
                 neighbors.append(neighbor)
 
             for neighbor in neighbors:
-                if neighbor in closed_set or neighbor.visited:
+                if neighbor in closed_set:
                     continue
 
                 new_g = current_node.g + 1
@@ -523,10 +548,21 @@ class Map:
 
                     heapq.heappush(open_list, neighbor)
 
-        return None
+        return []
 
     def backtracking_search(self):
         pass
+
+    def dfs(self, node: Node, visited=None):
+        if visited is None:
+            visited = set()
+
+        visited.add(node)
+
+        for neighbor in node.neighbors:
+            if neighbor not in visited:
+                neighbor.parent = node
+                self.dfs(neighbor, visited)
 
     def end_game(self, turns: int = -1) -> None:
         print(f"e {turns}")
@@ -563,9 +599,13 @@ def main() -> None:
     x, y = [int(x) for x in input().split()]
 
     field = Map(perception_type, (x, y))
+    field.make_turn(0, 0)
 
-    path = field.astar_search(field.get_node(x, y))
+    field.dfs(field.get_node(0, 0))
+
+    path = field.astar_search(field.get_node(0, 0), field.get_node(x, y))
+    logging.info(f"GAME ENDED, PATH : {path}")
+
     field.end_game(len(path) if path else -1)
-
 
 main()
