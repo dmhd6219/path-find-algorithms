@@ -420,6 +420,16 @@ class Map:
 
         return moves
 
+    def remove_duplicates(self, arr: list[any]) -> list[any]:
+        last_element = None
+        new_arr = []
+
+        for elem in arr:
+            if last_element and last_element != elem:
+                new_arr.append(elem)
+                last_element = elem
+        return new_arr
+
     def get_path(self, start_node: Node, end_node: Node) -> list[Node]:
         to_start = []
         from_start = []
@@ -436,11 +446,14 @@ class Map:
 
         from_start.reverse()
 
-        path = to_start + from_start
+        path = to_start + from_start[1::]
         path.append(end_node)
 
-        logging.debug(f"REQUESTED PATH : from {start_node} to {end_node} : {path}")
-        return list(dict.fromkeys(path))
+        path2 = self.remove_duplicates(path)
+
+        logging.debug(f" requested path - from {start_node} to {end_node} - {path}")
+        logging.debug(f" requested path - from {start_node} to {end_node} - {path2}")
+        return path
 
     def move_on_path(self, path: list[Node]) -> None:
         for node in path:
@@ -466,6 +479,7 @@ class Map:
             if current_node not in start_node.neighbors:
                 path = self.get_path(self.get_node(self.thanos.x, self.thanos.y), current_node)
                 if path:
+                    logging.debug(f" path - {path}")
                     self.move_on_path(path)
             else:
                 self.make_turn(current_node.x, current_node.y)
@@ -517,17 +531,6 @@ class Map:
     def backtracking_search(self):
         pass
 
-    def dfs(self, node: Node, visited=None):
-        if visited is None:
-            visited = set()
-
-        visited.add(node)
-
-        for neighbor in node.neighbors:
-            if neighbor not in visited:
-                neighbor.parent = node
-                self.dfs(neighbor, visited)
-
     def end_game(self, turns: int = -1) -> int:
         print(f"e {turns}")
         return turns
@@ -539,19 +542,18 @@ class Map:
         turn_node.visit()
 
         logging.debug(
-            f"TURN MADE : to [{turn_node.x};{turn_node.y}]; Thanos now at [{self.__thanos.x};{self.__thanos.y}]")
+            f" turn made - to [{turn_node.x};{turn_node.y}]; Thanos now at [{self.__thanos.x};{self.__thanos.y}]")
         print(f"m {turn_node.x} {turn_node.y}")
 
         logging_string = ""
         response = int(input())
-        logging_string += f"{response};"
 
         for _ in range(response):
             response = input()
             logging_string += f"{response};"
             info_x, info_y, info_status = response.split()
             self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
-        logging.debug(f"RESPONSE GOT for [{turn_node.x};{turn_node.y}] : {logging_string}")
+        logging.debug(f" got response for [{turn_node.x};{turn_node.y}] : {logging_string}")
 
     @property
     def thanos(self):
@@ -564,10 +566,10 @@ def main() -> None:
 
     field = Map(perception_type, (x, y))
 
-    field.dfs(field.get_node(0, 0))
+    # field.dfs(field.get_node(0, 0))
 
     path = field.astar_search(field.get_node(0, 0), field.get_node(x, y))
-    logging.info(f"GAME ENDED, PATH : {path}")
+    logging.debug(f" game ended, all path - {path}")
 
     field.end_game(len(path) - 1 if path else -1)
 
