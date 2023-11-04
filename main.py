@@ -7,10 +7,8 @@ from __future__ import annotations
 
 import heapq
 import enum
-import logging
 
 MAP_LENGTH = 8
-logging.basicConfig(level=logging.DEBUG, filename="py_log.log", filemode="w")
 
 
 class WrongMoveException(Exception):
@@ -28,6 +26,22 @@ class NodeType(enum.Enum):
 
 
 class Node:
+    """
+        Represents a node on the map.
+
+        Attributes:
+            __x (int): X-coordinate.
+            __y (int): Y-coordinate.
+            __type (list[NodeType]): List of node types.
+            __g (int): Distance to start node.
+            __h (int): Distance to goal node.
+            __f (int): Total cost.
+            __parent (Node | None): Parent node.
+            __map (Map): The map containing this node.
+            __visited (bool): Whether the node has been visited.
+            __neighbors (list[Node]): List of neighboring nodes.
+        """
+
     __x: int
     __y: int
     __type: list[NodeType]
@@ -40,11 +54,12 @@ class Node:
     __map: Map
 
     __visited: bool
-    _neighbors: list[Node]
+    __neighbors: list[Node]
 
     def __init__(self, x: int, y: int):
         """
-        Represents a node on the map.
+        Initializes a Node on the map.
+
         Args:
             x (int): X-coordinate.
             y (int): Y-coordinate.
@@ -72,18 +87,57 @@ class Node:
         self.__type.append(type_)
 
     def is_character(self) -> bool:
+        """
+        Check if the node represents a character.
+
+        Returns:
+            bool: True if the node represents a character, False otherwise.
+        """
         return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(self.type))
 
     def is_perception(self) -> bool:
+        """
+        Check if the node represents a perception.
+
+        Returns:
+            bool: True if the node represents a perception, False otherwise.
+        """
         return NodeType.PERCEPTION in self.type
 
+    def can_break_shield(self):
+        """
+        Check if this node represents a character that can break a shield.
+
+        Returns:
+            bool: True if the character can break a shield, False otherwise.
+        """
+        return NodeType.CAPTAIN in self.type
+
     def is_stone(self) -> bool:
+        """
+        Check if the node represents a stone.
+
+        Returns:
+            bool: True if the node represents a stone, False otherwise.
+        """
         return NodeType.STONE in self.type
 
     def is_shield(self) -> bool:
+        """
+        Check if the node represents a shield.
+
+        Returns:
+            bool: True if the node represents a shield, False otherwise.
+        """
         return NodeType.SHIELD in self.type
 
     def is_empty(self) -> bool:
+        """
+        Check if the node is empty.
+
+        Returns:
+            bool: True if the node is empty, False otherwise.
+        """
         return len(self.type) == 0
 
     @staticmethod
@@ -102,9 +156,24 @@ class Node:
 
     @property
     def neighbors(self) -> list[Node]:
+        """
+        Get a list of neighboring nodes.
+
+        Returns:
+            list[Node]: List of neighboring nodes.
+        """
         return self.__neighbors
 
     def add_neighbor(self, neighbor: Node) -> list[Node]:
+        """
+        Add a neighboring node to the list of neighbors.
+
+        Args:
+            neighbor (Node): The neighboring node to add.
+
+        Returns:
+            list[Node]: Updated list of neighboring nodes.
+        """
         if neighbor.__class__ != Node:
             raise ValueError("Neighbor should be only Node class instance")
 
@@ -113,9 +182,18 @@ class Node:
 
     @property
     def visited(self) -> bool:
+        """
+        Check if the node has been visited.
+
+        Returns:
+            bool: True if the node has been visited, False otherwise.
+        """
         return self.__visited
 
     def visit(self) -> None:
+        """
+        Mark the node as visited.
+        """
         self.__visited = True
 
     @property
@@ -182,6 +260,12 @@ class Node:
 
     @property
     def parent(self) -> Node | None:
+        """
+        Get the parent node.
+
+        Returns:
+            Node | None: The parent node or None if no parent is assigned.
+        """
         return self.__parent
 
     @parent.setter
@@ -190,22 +274,68 @@ class Node:
 
     @property
     def type(self) -> list[NodeType]:
+        """
+        Get the list of node types.
+
+        Returns:
+            list[NodeType]: List of node types.
+        """
         return self.__type
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the node.
+
+        Returns:
+            str: String representation of the node.
+        """
         return f'Node{{X={self.__x};Y={self.__y};Info:[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
 
     def __hash__(self) -> int:
+        """
+        Get the hash value of the node.
+
+        Returns:
+            int: The hash value of the node.
+        """
         return self.__x * 100 + self.__y
 
-    def __eq__(self, other):
+    def __eq__(self, other: Node) -> bool:
+        """
+        Check if two nodes are equal.
+
+        Args:
+            other: Another node to compare to.
+
+        Returns:
+            bool: True if the nodes are equal, False otherwise.
+        """
         return self.x == other.x and self.y == other.y
 
     def __lt__(self, other):
+        """
+        Compare two nodes based on their total cost (f).
+
+        Args:
+            other: Another node to compare to.
+
+        Returns:
+            bool: True if this node has a lower total cost (f) than the other node, False otherwise.
+        """
         return self.f < other.f
 
 
 class Thanos:
+    """
+    Represents the Thanos character on the map.
+
+    Attributes:
+        __perception_type (int): The perception type of Thanos.
+        __x (int): X-coordinate of Thanos.
+        __y (int): Y-coordinate of Thanos.
+        __has_shield (bool): Whether Thanos has a shield.
+    """
+
     __perception_type: int
     __x: int
     __y: int
@@ -213,34 +343,25 @@ class Thanos:
 
     def __init__(self, perception_type: int):
         """
-            Represents Thanos character on the map.
+        Initializes Thanos character on the map.
 
-            Args:
-                perception_type (int): The perception type of Thanos.
-            """
+        Args:
+            perception_type (int): The perception type of Thanos.
+        """
         self.__x = 0
         self.__y = 0
         self.__has_shield = False
 
         self.__perception_type = perception_type
 
-    def get_perception_moves(self) -> list[tuple[int, int]]:
-        # if self.__perception_type == 1:
-        #     return [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
-        #
-        # if self.__perception_type == 2:
-        #     return [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-2, 2), (2, 2), (2, -2),
-        #             (-2, -2)]
-
-        return []
-
-    def get_perception_coords(self) -> list[tuple[int, int]]:
-        return [(x[0] + self.x, x[1] + self.y) for x in self.get_perception_moves() if
-                0 <= x[0] + self.x <= MAP_LENGTH and 0 <= x[1] + self.y <= MAP_LENGTH]
-
     @property
     def perception_type(self) -> int:
-        """Get the perception type of Thanos."""
+        """
+        Get the perception type of Thanos.
+
+        Returns:
+            int: The perception type of Thanos.
+        """
         return self.__perception_type
 
     @property
@@ -249,7 +370,7 @@ class Thanos:
         Get the X-coordinate of Thanos.
 
         Returns:
-            int: The X-coordinate.
+            int: The X-coordinate of Thanos.
         """
         return self.__x
 
@@ -259,12 +380,12 @@ class Thanos:
         Get the Y-coordinate of Thanos.
 
         Returns:
-            int: The Y-coordinate.
+            int: The Y-coordinate of Thanos.
         """
         return self.__y
 
     @property
-    def has_shield(self):
+    def has_shield(self) -> bool:
         """
         Check if Thanos has a shield.
 
@@ -273,7 +394,7 @@ class Thanos:
         """
         return self.__has_shield
 
-    def give_shield(self):
+    def give_shield(self) -> None:
         """
         Give a shield to Thanos.
         """
@@ -292,7 +413,6 @@ class Thanos:
         """
 
         if (abs(abs(move_x) - abs(self.x))) + (abs(abs(move_y) - abs(self.y))) > 1:
-            logging.error(f"Tried to move from [{self.x};{self.y}] to [{move_x};{move_y}]")
             raise WrongMoveException("Thanos can go only at neighbour coordinated")
 
         self.__x = move_x
@@ -302,6 +422,15 @@ class Thanos:
 
 
 class Map:
+    """
+    Represents the game map.
+
+    Attributes:
+        __map (list[list[Node]]): The map containing nodes.
+        __thanos (Thanos): The Thanos character on the map.
+        __steps (int): The number of steps taken in the game.
+        __stone_coords (tuple[int, int]): Initial coordinates of the stone.
+    """
     __map: list[list[Node]]
     __thanos: Thanos
     __steps: int
@@ -309,7 +438,7 @@ class Map:
 
     def __init__(self, perception_type: int, stone: tuple[int, int]):
         """
-        Represents the game map.
+        Initializes the game map.
 
         Args:
             perception_type (int): The perception type of Thanos.
@@ -336,7 +465,13 @@ class Map:
         self.__steps = 0
         self.__stone_coords = stone
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the map.
+
+        Returns:
+            str: String representation of the map.
+        """
         max_width = max([max(len(str(element)) for element in row) for row in self.__map])
 
         return "\n".join(" | ".join(str(element).ljust(max_width) for element in row) for row in self.__map)
@@ -350,6 +485,16 @@ class Map:
             int: The number of steps.
         """
         return self.__steps
+
+    @property
+    def thanos(self) -> Thanos:
+        """
+        Get the instance of Thanos for the game.
+
+        Returns:
+            Thanos: The instance of Thanos.
+        """
+        return self.__thanos
 
     def get_node(self, x: int, y: int) -> Node:
         """
@@ -412,6 +557,12 @@ class Map:
         return True
 
     def get_possible_moves(self) -> list[tuple[int, int]]:
+        """
+        Get a list of possible moves for Thanos.
+
+        Returns:
+            list[tuple[int, int]]: List of possible move directions as (delta_x, delta_y).
+        """
         moves = []
         for delta_x in range(-1, 2):
             for delta_y in range(-1, 2):
@@ -420,17 +571,17 @@ class Map:
 
         return moves
 
-    def remove_duplicates(self, arr: list[any]) -> list[any]:
-        last_element = None
-        new_arr = []
-
-        for elem in arr:
-            if last_element and last_element != elem:
-                new_arr.append(elem)
-                last_element = elem
-        return new_arr
-
     def get_path(self, start_node: Node, end_node: Node) -> list[Node]:
+        """
+        Get the path from start to end node.
+
+        Args:
+            start_node (Node): The starting node.
+            end_node (Node): The ending node.
+
+        Returns:
+            list[Node]: List of nodes representing the path from start to end node.
+            """
         to_start = []
         from_start = []
 
@@ -449,25 +600,85 @@ class Map:
         path = to_start + from_start[1::]
         path.append(end_node)
 
-        path2 = self.remove_duplicates(path)
-
-        logging.debug(f" requested path - from {start_node} to {end_node} - {path}")
-        logging.debug(f" requested path - from {start_node} to {end_node} - {path2}")
         return path
 
+
+class Assignment:
+    """
+        Represents the assignment and game-solving logic.
+
+        Attributes:
+            __field (Map): The game map.
+            __start_node (Node): The starting node.
+            __end_node (Node): The ending node.
+        """
+    __field: Map
+    __start_node: Node
+    __end_node: Node
+
+    def __init__(self):
+        """
+        Initializes new Assignment.
+        """
+        perception_type = int(input())
+        x, y = [int(x) for x in input().split()]
+        self.__field = Map(perception_type, (x, y))
+
+        self.__start_node = self.field.get_node(0, 0)
+        self.__end_node = self.field.get_node(x, y)
+
+    @property
+    def field(self):
+        """
+        Get the game map.
+
+        Returns:
+            Map: The game map.
+        """
+        return self.__field
+
+    @property
+    def start_node(self):
+        """
+        Get the starting node.
+
+        Returns:
+            Node: The starting node.
+        """
+        return self.__start_node
+
+    @property
+    def end_node(self):
+        """
+        Get the ending node.
+
+        Returns:
+            Node: The ending node.
+        """
+        return self.__end_node
+
     def move_on_path(self, path: list[Node]) -> None:
+        """
+        Move Thanos character along a specified path.
+
+        Args:
+            path (list[Node]): List of nodes representing the path.
+        """
         for node in path:
             self.make_turn(node.x, node.y)
 
-    def astar_search(self, start_node: Node, end_node: Node) -> list[tuple[int, int]]:
+    def astar_search(self) -> list[tuple[int, int]]:
         """
-                Perform an A* search algorithm to find the path to the stone.
+        Perform an A* search algorithm to find the path to the stone.
+
+        Returns:
+            list[tuple[int, int]]: List of coordinates representing the path.
         """
-        current_node = start_node
+        current_node = self.start_node
 
         # priority queue
         open_list = []
-        heapq.heappush(open_list, start_node)
+        heapq.heappush(open_list, self.start_node)
 
         # visited nodes
         closed_set = set()
@@ -477,14 +688,13 @@ class Map:
             # get node with smallest f
             current_node = heapq.heappop(open_list)
             if current_node not in start_node.neighbors:
-                path = self.get_path(self.get_node(self.__thanos.x, self.__thanos.y), current_node)
+                path = self.field.get_path(self.field.get_node(self.field.thanos.x, self.field.thanos.y), current_node)
                 if path:
-                    logging.debug(f" path - {path}")
                     self.move_on_path(path)
             else:
                 self.make_turn(current_node.x, current_node.y)
 
-            if current_node == end_node:
+            if current_node == self.end_node:
                 path = []
                 while current_node is not None:
                     path.append((current_node.x, current_node.y))
@@ -495,11 +705,11 @@ class Map:
             closed_set.add(current_node)
 
             neighbors = []
-            for move in self.get_possible_moves():
-                move_x = self.__thanos.x + move[0]
-                move_y = self.__thanos.y + move[1]
+            for move in self.field.get_possible_moves():
+                move_x = self.field.thanos.x + move[0]
+                move_y = self.field.thanos.y + move[1]
 
-                neighbor = self.get_node(move_x, move_y)
+                neighbor = self.field.get_node(move_x, move_y)
                 neighbors.append(neighbor)
 
             for neighbor in neighbors:
@@ -512,7 +722,7 @@ class Map:
 
                     if new_g < neighbor.g:
                         neighbor.g = new_g
-                        neighbor.h = Node.heuristics(end_node, neighbor)
+                        neighbor.h = Node.heuristics(self.end_node, neighbor)
                         neighbor.f = neighbor.g + neighbor.h
                         neighbor.parent = current_node
 
@@ -520,7 +730,7 @@ class Map:
                 else:
 
                     neighbor.g = new_g
-                    neighbor.h = Node.heuristics(end_node, neighbor)
+                    neighbor.h = Node.heuristics(self.end_node, neighbor)
                     neighbor.f = neighbor.g + neighbor.h
                     neighbor.parent = current_node
 
@@ -531,56 +741,60 @@ class Map:
     def backtracking_search(self):
         pass
 
-    def end_game(self, turns: int = -1) -> int:
+    def end_solution(self, turns: int = -1) -> int:
+        """
+        End the game and print the number of turns taken.
+
+        Args:
+            turns (int): The number of turns taken (default is -1 if no turns taken).
+
+        Returns:
+            int: The number of turns taken.
+        """
         print(f"e {turns}")
         return turns
 
     def make_turn(self, move_x: int, move_y: int):
-        turn_node = self.get_node(move_x, move_y)
-        self.__thanos.move(move_x, move_y)
+        """
+        Perform a turn by moving Thanos character and updating the game state.
+
+        Args:
+            move_x (int): Change in X-coordinate.
+            move_y (int): Change in Y-coordinate.
+        """
+        turn_node = self.field.get_node(move_x, move_y)
+        self.field.thanos.move(move_x, move_y)
 
         turn_node.visit()
 
-        logging.debug(
-            f" turn made - to [{turn_node.x};{turn_node.y}]; Thanos now at [{self.__thanos.x};{self.__thanos.y}]")
         print(f"m {turn_node.x} {turn_node.y}")
 
-        logging_string = ""
         response = int(input())
 
         for _ in range(response):
             response = input()
-            logging_string += f"{response};"
             info_x, info_y, info_status = response.split()
 
             node_type = NodeType(info_status)
             if node_type == NodeType.EMPTY:
                 pass
             elif node_type == NodeType.SHIELD:
-                self.__thanos.give_shield()
+                self.field.thanos.give_shield()
             else:
-                self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+                self.field.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
 
-        logging.debug(f" got response for [{turn_node.x};{turn_node.y}] : {logging_string}")
-
-
-@property
-def thanos(self):
-    return self.__thanos
+    def solve(self):
+        """
+        Solve the game using A* search and make necessary turns to reach the solution.
+        """
+        path = self.astar_search()
+        self.end_solution(len(path) - 1 if path else -1)
 
 
 def main() -> None:
-    perception_type = int(input())
-    x, y = [int(x) for x in input().split()]
+    solver = Assignment()
 
-    field = Map(perception_type, (x, y))
-
-    # field.dfs(field.get_node(0, 0))
-
-    path = field.astar_search(field.get_node(0, 0), field.get_node(x, y))
-    logging.debug(f" game ended, all path - {path}")
-
-    field.end_game(len(path) - 1 if path else -1)
+    solver.solve()
 
 
 if __name__ == "__main__":
