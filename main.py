@@ -399,15 +399,15 @@ class Map:
         if abs(delta_x) + abs(delta_y) > 1:
             return False
 
-        new_x = self.thanos.x + delta_x
-        new_y = self.thanos.y + delta_y
+        new_x = self.__thanos.x + delta_x
+        new_y = self.__thanos.y + delta_y
 
         if not (0 <= new_x <= MAP_LENGTH) or not (0 <= new_y <= MAP_LENGTH):
             return False
 
         new_node = self.get_node(new_x, new_y)
 
-        if new_node.is_character() or (new_node.is_perception() and not self.thanos.has_shield):
+        if new_node.is_character() or (new_node.is_perception() and not self.__thanos.has_shield):
             return False
         return True
 
@@ -477,7 +477,7 @@ class Map:
             # get node with smallest f
             current_node = heapq.heappop(open_list)
             if current_node not in start_node.neighbors:
-                path = self.get_path(self.get_node(self.thanos.x, self.thanos.y), current_node)
+                path = self.get_path(self.get_node(self.__thanos.x, self.__thanos.y), current_node)
                 if path:
                     logging.debug(f" path - {path}")
                     self.move_on_path(path)
@@ -496,8 +496,8 @@ class Map:
 
             neighbors = []
             for move in self.get_possible_moves():
-                move_x = self.thanos.x + move[0]
-                move_y = self.thanos.y + move[1]
+                move_x = self.__thanos.x + move[0]
+                move_y = self.__thanos.y + move[1]
 
                 neighbor = self.get_node(move_x, move_y)
                 neighbors.append(neighbor)
@@ -554,13 +554,12 @@ class Map:
             info_x, info_y, info_status = response.split()
 
             node_type = NodeType(info_status)
-            match node_type:
-                case NodeType.EMPTY:
-                    pass
-                case NodeType.SHIELD:
-                    self.__thanos.give_shield()
-                case _:
-                    self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+            if node_type == NodeType.EMPTY:
+                pass
+            elif node_type == NodeType.SHIELD:
+                self.__thanos.give_shield()
+            else:
+                self.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
 
         logging.debug(f" got response for [{turn_node.x};{turn_node.y}] : {logging_string}")
 
