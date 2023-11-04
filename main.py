@@ -407,7 +407,7 @@ class Map:
 
         new_node = self.get_node(new_x, new_y)
 
-        if new_node.is_character() or (new_node.is_perception() and not self.__thanos.has_shield):
+        if new_node.is_character() or new_node.is_perception():
             return False
         return True
 
