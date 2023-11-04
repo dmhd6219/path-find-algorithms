@@ -440,7 +440,7 @@ class Map:
         path.append(end_node)
 
         logging.debug(f"REQUESTED PATH : from {start_node} to {end_node} : {path}")
-        return path
+        return list(dict.fromkeys(path))
 
     def move_on_path(self, path: list[Node]) -> None:
         for node in path:
@@ -465,7 +465,8 @@ class Map:
             current_node = heapq.heappop(open_list)
             if current_node not in start_node.neighbors:
                 path = self.get_path(self.get_node(self.thanos.x, self.thanos.y), current_node)
-                self.move_on_path(path)
+                if path:
+                    self.move_on_path(path)
             else:
                 self.make_turn(current_node.x, current_node.y)
 
