@@ -1,4 +1,4 @@
-# A* Algorythm
+# A* and Backtracking Algorithms for Finding a Path with unknown map
 
 ## This was done as homework for Intro to AI course at Innopolis University.
 
