@@ -1,5 +1,7 @@
 # A* and Backtracking Algorithms for Finding a Path with unknown map
 
+[![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/)
+
 ## This was done as homework for Intro to AI course at Innopolis University.
 
 ### Task
