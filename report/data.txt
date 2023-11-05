@@ -1,0 +1,23 @@
+Analysis of file "report/backtracking1.csv"
+Tests count = 1000, count of wins = 911, count of losses = 89
+Percentage of wins = 91.1%, percentage of losses = 8.9%
+Time: mean = 0.20935s, mode = 0.11529s, median = 0.11737s, sample standard deviation = 0.09473s
+Wins: 911, Loses: 89
+
+Analysis of file "report/backtracking2.csv"
+Tests count = 1000, count of wins = 911, count of losses = 89
+Percentage of wins = 91.1%, percentage of losses = 8.9%
+Time: mean = 0.21017s, mode = 0.16894s, median = 0.12187s, sample standard deviation = 0.09123s
+Wins: 911, Loses: 89
+
+Analysis of file "report/astar1.csv"
+Tests count = 1000, count of wins = 905, count of losses = 95
+Percentage of wins = 90.5%, percentage of losses = 9.5%
+Time: mean = 0.1448s, mode = 0.11361s, median = 0.1127s, sample standard deviation = 0.04411s
+Wins: 905, Loses: 95
+
+Analysis of file "report/astar2.csv"
+Tests count = 1000, count of wins = 905, count of losses = 95
+Percentage of wins = 90.5%, percentage of losses = 9.5%
+Time: mean = 0.14529s, mode = 0.11699s, median = 0.11218s, sample standard deviation = 0.03671s
+Wins: 905, Loses: 95
