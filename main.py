@@ -10,7 +10,7 @@ import enum
 import logging
 import sys
 
-logging.basicConfig(level=logging.DEBUG, filename="py_log.log",filemode="w")
+logging.basicConfig(level=logging.DEBUG, filename="py_log.log", filemode="w")
 
 MAP_LENGTH = 8
 
@@ -36,7 +36,7 @@ class Node:
         Attributes:
             __x (int): X-coordinate.
             __y (int): Y-coordinate.
-            __type (list[NodeType]): List of node types.
+            __node_type NodeType | None: Node type.
             __g (int): Distance to start node.
             __h (int): Distance to goal node.
             __f (int): Total cost.
@@ -47,7 +47,7 @@ class Node:
 
     __x: int
     __y: int
-    __type: list[NodeType]
+    __node_type: NodeType | None
 
     __g: int  # Distance to start node
     __h: int  # Distance to goal node
@@ -68,7 +68,7 @@ class Node:
         """
         self.__x = x
         self.__y = y
-        self.__type = []
+        self.__node_type = None
 
         self.__g = 0
         self.__h = 0
@@ -78,15 +78,6 @@ class Node:
 
         self.__neighbors = []
 
-    def add_info(self, type_: NodeType) -> None:
-        """
-        Add information about the node type.
-
-        Args:
-            type_ (NodeType): The type of the node.
-        """
-        self.__type.append(type_)
-
     def is_character(self) -> bool:
         """
         Check if the node represents a character.
@@ -94,7 +85,7 @@ class Node:
         Returns:
             bool: True if the node represents a character, False otherwise.
         """
-        return bool({NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN} & set(self.type))
+        return self.node_type in {NodeType.HULK, NodeType.THOR, NodeType.CAPTAIN}
 
     def is_perception(self) -> bool:
         """
@@ -103,7 +94,7 @@ class Node:
         Returns:
             bool: True if the node represents a perception, False otherwise.
         """
-        return NodeType.PERCEPTION in self.type
+        return self.node_type == NodeType.PERCEPTION
 
     def can_break_shield(self) -> bool:
         """
@@ -112,7 +103,7 @@ class Node:
         Returns:
             bool: True if the character can break a shield, False otherwise.
         """
-        return NodeType.CAPTAIN in self.type
+        return self.node_type == NodeType.CAPTAIN
 
     def is_stone(self) -> bool:
         """
@@ -121,7 +112,7 @@ class Node:
         Returns:
             bool: True if the node represents a stone, False otherwise.
         """
-        return NodeType.STONE in self.type
+        return self.node_type == NodeType.STONE
 
     def is_shield(self) -> bool:
         """
@@ -130,7 +121,7 @@ class Node:
         Returns:
             bool: True if the node represents a shield, False otherwise.
         """
-        return NodeType.SHIELD in self.type
+        return self.node_type == NodeType.SHIELD
 
     def is_empty(self) -> bool:
         """
@@ -139,7 +130,7 @@ class Node:
         Returns:
             bool: True if the node is empty, False otherwise.
         """
-        return len(self.type) == 0
+        return self.node_type == NodeType.EMPTY
 
     def add_neighbor(self, neighbor: Node) -> list[Node]:
         """
@@ -267,14 +258,25 @@ class Node:
         self.__parent = value
 
     @property
-    def type(self) -> list[NodeType]:
+    def node_type(self) -> NodeType:
         """
-        Get the list of node types.
+        Get the node type.
 
         Returns:
-            list[NodeType]: List of node types.
+            NodeType: Node type.
         """
-        return self.__type
+        return self.__node_type
+
+    @node_type.setter
+    def node_type(self, value: NodeType) -> None:
+        """
+        Add information about the node type.
+
+        Args:
+            value (NodeType): The type of the node.
+        """
+
+        self.__node_type = value
 
     def __repr__(self) -> str:
         """
@@ -283,7 +285,7 @@ class Node:
         Returns:
             str: String representation of the node.
         """
-        return f'Node{{X={self.__x};Y={self.__y};Info[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
+        return f'Node{{X={self.__x};Y={self.__y};Info[{self.node_type}];}}'
 
     def __hash__(self) -> int:
         """
@@ -411,7 +413,8 @@ class Thanos:
         Returns:
             list[tuple[int, int]]: List of perception coordinates.
         """
-        return [(self.x + x[0], self.y + x[1]) for x in self.get_perception_zone()]
+        return [(self.x + x[0], self.y + x[1]) for x in self.get_perception_zone() if
+                0 <= self.x + x[0] <= 8 and 0 <= self.y + x[1] <= 8]
 
     def give_shield(self) -> None:
         """
@@ -464,7 +467,7 @@ class Map:
         self.__thanos = Thanos(perception_type)
         self.__map = [[Node(x, y) for y in range(0, MAP_LENGTH + 1)] for x in range(0, MAP_LENGTH + 1)]
 
-        self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
+        self.__map[stone[0]][stone[1]].node_type = NodeType.STONE
         self.__stone_coords = stone
 
         # add neighbors to every node
@@ -834,6 +837,9 @@ class Assignment:
         response = int(input())
         response_str = ""
 
+        for perception in self.field.thanos.get_perception_coords():
+            self.field.get_node(perception[0], perception[1]).node_type = NodeType.EMPTY
+
         for _ in range(response):
             response = input()
             response_str += f"{response}; "
@@ -844,12 +850,11 @@ class Assignment:
                 continue
 
             node_type = NodeType(info_status)
-            if node_type == NodeType.EMPTY:
-                pass
-            elif node_type == NodeType.SHIELD:
+
+            if node_type == NodeType.SHIELD:
                 self.field.thanos.give_shield()
             else:
-                self.field.get_node(info_x, info_y).add_info(NodeType(info_status))
+                self.field.get_node(info_x, info_y).node_type = node_type
 
     def solve(self) -> None:
         """
@@ -857,8 +862,8 @@ class Assignment:
         """
         # uncomment algorythm you want
 
-        path_length = self.astar_search()
-        # path_length = self.backtracking_search()
+        # path_length = self.astar_search()
+        path_length = self.backtracking_search()
         self.end_solution(path_length)
 
 
