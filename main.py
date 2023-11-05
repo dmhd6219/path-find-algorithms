@@ -834,7 +834,6 @@ class Assignment:
             info_x, info_y, info_status = response.split()
             info_x, info_y = int(info_x), int(info_y)
 
-            logging.debug(f"({info_x}, {info_y}) in {self.field.thanos.get_perception_coords()}")
             if (info_x, info_y) not in self.field.thanos.get_perception_coords():
                 continue
 
