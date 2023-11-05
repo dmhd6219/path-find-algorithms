@@ -199,6 +199,9 @@ class Node:
 
     @f.setter
     def f(self, value: int):
+        if value != (self.g + self.h):
+            raise ValueError(
+                "f is total cost of node, it should be sum of g (distance to start) and h (heuristic distance)")
         self.__f = value
 
     @property
@@ -213,6 +216,9 @@ class Node:
 
     @g.setter
     def g(self, value: int):
+        if value < 0:
+            raise ValueError("Distance to start can't be negative")
+
         self.__g = value
 
     @property
@@ -227,6 +233,9 @@ class Node:
 
     @h.setter
     def h(self, value: int):
+        if value < 0:
+            raise ValueError("Heuristic distance can't be negative")
+
         self.__h = value
 
     @property
