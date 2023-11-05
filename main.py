@@ -630,11 +630,12 @@ class Assignment:
 
     def astar_search(self) -> int:
         """
-        Perform an A* search algorithm to find the path to the stone.
+        Solve the game using the A* search algorithm and return the number of turns taken.
 
         Returns:
-            list[tuple[int, int]]: List of coordinates representing the path.
+            int: The number of turns taken to solve the game.
         """
+
         current_node = self.start_node
 
         # priority queue
@@ -700,6 +701,12 @@ class Assignment:
         return -1
 
     def backtracking_search(self):
+        """
+        Solve the game using backtracking search and return the number of turns taken.
+
+        Returns:
+            int: The number of turns taken to solve the game.
+        """
         self.run_dfs()
         if self.__min_distance == sys.maxsize * 2 + 1:
             return -1
@@ -710,6 +717,14 @@ class Assignment:
                 current_distance: int = 0,
                 visited: set = None
                 ) -> None:
+        """
+        Run depth-first search to explore the game state and find the minimum distance to the end node.
+
+        Args:
+            current_node (Node, optional): The current node being explored.
+            current_distance (int, optional): The current distance traveled.
+            visited (set, optional): Set of visited nodes.
+        """
 
         if current_node is None:
             current_node = self.start_node
@@ -744,20 +759,16 @@ class Assignment:
         visited.remove(current_node)
         self.make_turn(*thanos_position)
 
-    def end_solution(self, turns: int = -1) -> int:
+    def end_solution(self, turns: int = -1) -> None:
         """
         End the game and print the number of turns taken.
 
         Args:
             turns (int): The number of turns taken (default is -1 if no turns taken).
-
-        Returns:
-            int: The number of turns taken.
         """
         print(f"e {turns}")
-        return turns
 
-    def make_turn(self, move_x: int, move_y: int):
+    def make_turn(self, move_x: int, move_y: int) -> None:
         """
         Perform a turn by moving Thanos character and updating the game state.
 
@@ -788,7 +799,7 @@ class Assignment:
             else:
                 self.field.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
 
-    def solve(self):
+    def solve(self) -> None:
         """
         Solve the game using A* or Backtracking search and make necessary turns to reach the solution.
         """
