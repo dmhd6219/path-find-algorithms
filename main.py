@@ -7,10 +7,7 @@ from __future__ import annotations
 
 import heapq
 import enum
-import logging
 import sys
-
-logging.basicConfig(level=logging.DEBUG, filename="py_log.log", filemode="w")
 
 MAP_LENGTH = 8
 
@@ -43,7 +40,6 @@ class Node:
             __parent (Node | None): Parent node.
             __map (Map): The map containing this node.
             __visited (bool): Whether the node has been visited.
-            __neighbors (list[Node]): List of neighboring nodes.
         """
 
     __x: int
@@ -58,7 +54,6 @@ class Node:
     __map: Map
 
     __visited: bool
-    __neighbors: list[Node]
 
     def __init__(self, x: int, y: int):
         """
@@ -78,8 +73,6 @@ class Node:
 
         self.__parent = None
         self.__visited = False
-
-        self.__neighbors = []
 
     def add_info(self, type_: NodeType) -> None:
         """
@@ -157,32 +150,6 @@ class Node:
             int: Heuristic distance between the two nodes.
         """
         return abs(node1.x - node2.x) + abs(node1.y - node2.y)
-
-    @property
-    def neighbors(self) -> list[Node]:
-        """
-        Get a list of neighboring nodes.
-
-        Returns:
-            list[Node]: List of neighboring nodes.
-        """
-        return self.__neighbors
-
-    def add_neighbor(self, neighbor: Node) -> list[Node]:
-        """
-        Add a neighboring node to the list of neighbors.
-
-        Args:
-            neighbor (Node): The neighboring node to add.
-
-        Returns:
-            list[Node]: Updated list of neighboring nodes.
-        """
-        if neighbor.__class__ != Node:
-            raise ValueError("Neighbor should be only Node class instance")
-
-        self.__neighbors.append(neighbor)
-        return self.__neighbors
 
     @property
     def visited(self) -> bool:
@@ -293,7 +260,7 @@ class Node:
         Returns:
             str: String representation of the node.
         """
-        return f'Node{{X={self.__x};Y={self.__y};Info:[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
+        return f'Node{{X={self.__x};Y={self.__y};Info[{",".join(map(lambda x: str(x).split(".")[-1], self.__type))}];}}'
 
     def __hash__(self) -> int:
         """
@@ -417,8 +384,7 @@ class Thanos:
         """
 
         if (abs(abs(move_x) - abs(self.x))) + (abs(abs(move_y) - abs(self.y))) > 1:
-            logging.debug(f'Tried to go from {self.x}:{self.y} to {move_x}:{move_y}')
-            raise WrongMoveException("Thanos can go only at neighbour coordinated")
+            WrongMoveException("Thanos can go only at neighbour coordinated")
 
         self.__x = move_x
         self.__y = move_y
@@ -451,20 +417,6 @@ class Map:
         """
         self.__thanos = Thanos(perception_type)
         self.__map = [[Node(x, y) for y in range(0, MAP_LENGTH + 1)] for x in range(0, MAP_LENGTH + 1)]
-
-        # add neighbors to every node
-        for i in self.__map:
-            for j in i:
-                neighbor_x = j.x
-                neighbor_y = j.y
-                if neighbor_x + 1 <= MAP_LENGTH:
-                    j.add_neighbor(self.get_node(neighbor_x + 1, neighbor_y))
-                if neighbor_x - 1 >= 0:
-                    j.add_neighbor(self.get_node(neighbor_x - 1, neighbor_y))
-                if neighbor_y + 1 <= MAP_LENGTH:
-                    j.add_neighbor(self.get_node(neighbor_x, neighbor_y + 1))
-                if neighbor_y - 1 >= 0:
-                    j.add_neighbor(self.get_node(neighbor_x, neighbor_y - 1))
 
         self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
         self.__steps = 0
@@ -766,7 +718,6 @@ class Assignment:
 
         if current_node == self.end_node:
             self.__min_distance = min(self.__min_distance, current_distance)
-            logging.debug(f"PATH : {visited}")
             return
 
         if current_distance >= self.__min_distance or current_node in visited:
@@ -820,7 +771,6 @@ class Assignment:
         turn_node.visit()
 
         print(f"m {turn_node.x} {turn_node.y}")
-        logging.debug(f"m {turn_node.x} {turn_node.y}")
 
         response = int(input())
         response_str = ""
@@ -837,7 +787,6 @@ class Assignment:
                 self.field.thanos.give_shield()
             else:
                 self.field.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
-        logging.debug(response_str)
 
     def solve(self):
         """
