@@ -390,10 +390,10 @@ class Thanos:
 
     def get_perception_zone(self) -> list[tuple[int, int]]:
         """
-        Get the perception coordinates for Thanos based on his perception type.
+        Get the perception zone for Thanos based on his perception type.
 
         Returns:
-            list[tuple[int, int]]: List of perception coordinates.
+            list[tuple[int, int]]: List of perception coordinates deltas.
         """
         if self.perception_type == 1:
             return [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0)]
@@ -405,6 +405,12 @@ class Thanos:
         return []
 
     def get_perception_coords(self) -> list[tuple[int, int]]:
+        """
+        Get the perception coordinates for Thanos based on his perception type.
+
+        Returns:
+            list[tuple[int, int]]: List of perception coordinates.
+        """
         return [(self.x + x[0], self.y + x[1]) for x in self.get_perception_zone()]
 
     def give_shield(self) -> None:
