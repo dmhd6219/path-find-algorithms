@@ -749,6 +749,8 @@ class Assignment:
 
     def backtracking_search(self):
         self.run_dfs()
+        if self.__min_distance == sys.maxsize * 2 + 1:
+            return -1
         return self.__min_distance
 
     def run_dfs(self,
@@ -764,6 +766,7 @@ class Assignment:
 
         if current_node == self.end_node:
             self.__min_distance = min(self.__min_distance, current_distance)
+            logging.debug(f"PATH : {visited}")
             return
 
         if current_distance >= self.__min_distance or current_node in visited:
@@ -841,6 +844,7 @@ class Assignment:
         Solve the game using A* or Backtracking search and make necessary turns to reach the solution.
         """
         # uncomment algorythm you want
+
         # path_length = self.astar_search()
         path_length = self.backtracking_search()
         self.end_solution(path_length)
