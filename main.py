@@ -7,6 +7,10 @@ from __future__ import annotations
 
 import heapq
 import enum
+import logging
+import sys
+
+logging.basicConfig(level=logging.DEBUG, filename="py_log.log", filemode="w")
 
 MAP_LENGTH = 8
 
@@ -413,6 +417,7 @@ class Thanos:
         """
 
         if (abs(abs(move_x) - abs(self.x))) + (abs(abs(move_y) - abs(self.y))) > 1:
+            logging.debug(f'Tried to go from {self.x}:{self.y} to {move_x}:{move_y}')
             raise WrongMoveException("Thanos can go only at neighbour coordinated")
 
         self.__x = move_x
@@ -616,6 +621,8 @@ class Assignment:
     __start_node: Node
     __end_node: Node
 
+    __min_distance: int
+
     def __init__(self):
         """
         Initializes new Assignment.
@@ -626,6 +633,8 @@ class Assignment:
 
         self.__start_node = self.field.get_node(0, 0)
         self.__end_node = self.field.get_node(x, y)
+
+        self.__min_distance = sys.maxsize * 2 + 1
 
     @property
     def field(self):
@@ -667,7 +676,7 @@ class Assignment:
         for node in path:
             self.make_turn(node.x, node.y)
 
-    def astar_search(self) -> list[tuple[int, int]]:
+    def astar_search(self) -> int:
         """
         Perform an A* search algorithm to find the path to the stone.
 
@@ -700,7 +709,7 @@ class Assignment:
                     path.append((current_node.x, current_node.y))
                     current_node = current_node.parent
 
-                return path[::-1]
+                return len(path[::-1]) - 1
 
             closed_set.add(current_node)
 
@@ -736,10 +745,50 @@ class Assignment:
 
                     heapq.heappush(open_list, neighbor)
 
-        return []
+        return -1
 
     def backtracking_search(self):
-        pass
+        self.run_dfs()
+        return self.__min_distance
+
+    def run_dfs(self,
+                current_node: Node = None,
+                current_distance: int = 0,
+                visited: set = None
+                ) -> None:
+
+        if current_node is None:
+            current_node = self.start_node
+        if visited is None:
+            visited = set()
+
+        if current_node == self.end_node:
+            self.__min_distance = min(self.__min_distance, current_distance)
+            return
+
+        if current_distance >= self.__min_distance or current_node in visited:
+            return
+        visited.add(current_node)
+
+        thanos_position = (self.field.thanos.x, self.field.thanos.y)
+        self.make_turn(current_node.x, current_node.y)
+
+        neighbors = []
+        for move in self.field.get_possible_moves():
+            move_x = self.field.thanos.x + move[0]
+            move_y = self.field.thanos.y + move[1]
+
+            neighbor = self.field.get_node(move_x, move_y)
+            neighbors.append(neighbor)
+
+        for neighbor in neighbors:
+            if neighbor.g == 0 or neighbor.g > current_distance:
+                neighbor.g = current_distance
+
+                self.run_dfs(neighbor, current_distance + 1, visited)
+
+        visited.remove(current_node)
+        self.make_turn(*thanos_position)
 
     def end_solution(self, turns: int = -1) -> int:
         """
@@ -768,11 +817,14 @@ class Assignment:
         turn_node.visit()
 
         print(f"m {turn_node.x} {turn_node.y}")
+        logging.debug(f"m {turn_node.x} {turn_node.y}")
 
         response = int(input())
+        response_str = ""
 
         for _ in range(response):
             response = input()
+            response_str += f"{response}; "
             info_x, info_y, info_status = response.split()
 
             node_type = NodeType(info_status)
@@ -782,13 +834,16 @@ class Assignment:
                 self.field.thanos.give_shield()
             else:
                 self.field.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+        logging.debug(response_str)
 
     def solve(self):
         """
-        Solve the game using A* search and make necessary turns to reach the solution.
+        Solve the game using A* or Backtracking search and make necessary turns to reach the solution.
         """
-        path = self.astar_search()
-        self.end_solution(len(path) - 1 if path else -1)
+        # uncomment algorythm you want
+        # path_length = self.astar_search()
+        path_length = self.backtracking_search()
+        self.end_solution(path_length)
 
 
 def main() -> None:
