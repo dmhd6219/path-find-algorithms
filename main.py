@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import heapq
 import enum
+import logging
 import sys
+
+logging.basicConfig(level=logging.DEBUG, filename="py_log.log",filemode="w")
 
 MAP_LENGTH = 8
 
@@ -39,7 +42,7 @@ class Node:
             __f (int): Total cost.
             __parent (Node | None): Parent node.
             __map (Map): The map containing this node.
-            __visited (bool): Whether the node has been visited.
+            __neighbors (list[Node]): List of neighboring nodes.
         """
 
     __x: int
@@ -53,7 +56,7 @@ class Node:
     __parent: Node | None
     __map: Map
 
-    __visited: bool
+    __neighbors: list[Node]
 
     def __init__(self, x: int, y: int):
         """
@@ -72,7 +75,8 @@ class Node:
         self.__f = 0
 
         self.__parent = None
-        self.__visited = False
+
+        self.__neighbors = []
 
     def add_info(self, type_: NodeType) -> None:
         """
@@ -137,6 +141,32 @@ class Node:
         """
         return len(self.type) == 0
 
+    def add_neighbor(self, neighbor: Node) -> list[Node]:
+        """
+        Add a neighboring node to the list of neighbors.
+
+        Args:
+            neighbor (Node): The neighboring node to add.
+
+        Returns:
+            list[Node]: Updated list of neighboring nodes.
+        """
+        if neighbor.__class__ != Node:
+            raise ValueError("Neighbor should be only Node class instance")
+
+        self.__neighbors.append(neighbor)
+        return self.__neighbors
+
+    @property
+    def neighbors(self) -> list[Node]:
+        """
+        Get a list of neighboring nodes.
+
+        Returns:
+            list[Node]: List of neighboring nodes.
+        """
+        return self.__neighbors
+
     @staticmethod
     def heuristics(node1: Node, node2: Node) -> int:
         """
@@ -150,22 +180,6 @@ class Node:
             int: Heuristic distance between the two nodes.
         """
         return abs(node1.x - node2.x) + abs(node1.y - node2.y)
-
-    @property
-    def visited(self) -> bool:
-        """
-        Check if the node has been visited.
-
-        Returns:
-            bool: True if the node has been visited, False otherwise.
-        """
-        return self.__visited
-
-    def visit(self) -> None:
-        """
-        Mark the node as visited.
-        """
-        self.__visited = True
 
     @property
     def x(self) -> int:
@@ -374,6 +388,25 @@ class Thanos:
         """
         return self.__has_shield
 
+    def get_perception_zone(self) -> list[tuple[int, int]]:
+        """
+        Get the perception coordinates for Thanos based on his perception type.
+
+        Returns:
+            list[tuple[int, int]]: List of perception coordinates.
+        """
+        if self.perception_type == 1:
+            return [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0)]
+
+        if self.perception_type == 2:
+            return [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-2, 2), (2, 2), (2, -2),
+                    (-2, -2)]
+
+        return []
+
+    def get_perception_coords(self) -> list[tuple[int, int]]:
+        return [(self.x + x[0], self.y + x[1]) for x in self.get_perception_zone()]
+
     def give_shield(self) -> None:
         """
         Give a shield to Thanos.
@@ -393,7 +426,7 @@ class Thanos:
         """
 
         if (abs(abs(move_x) - abs(self.x))) + (abs(abs(move_y) - abs(self.y))) > 1:
-            WrongMoveException("Thanos can go only at neighbour coordinated")
+            WrongMoveException("Thanos can go only at neighbour coordinates")
 
         self.__x = move_x
         self.__y = move_y
@@ -427,6 +460,20 @@ class Map:
 
         self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
         self.__stone_coords = stone
+
+        # add neighbors to every node
+        for i in self.__map:
+            for j in i:
+                neighbor_x = j.x
+                neighbor_y = j.y
+                if neighbor_x + 1 <= MAP_LENGTH:
+                    j.add_neighbor(self.get_node(neighbor_x + 1, neighbor_y))
+                if neighbor_x - 1 >= 0:
+                    j.add_neighbor(self.get_node(neighbor_x - 1, neighbor_y))
+                if neighbor_y + 1 <= MAP_LENGTH:
+                    j.add_neighbor(self.get_node(neighbor_x, neighbor_y + 1))
+                if neighbor_y - 1 >= 0:
+                    j.add_neighbor(self.get_node(neighbor_x, neighbor_y - 1))
 
     def __repr__(self) -> str:
         """
@@ -776,8 +823,6 @@ class Assignment:
         turn_node = self.field.get_node(move_x, move_y)
         self.field.thanos.move(move_x, move_y)
 
-        turn_node.visit()
-
         print(f"m {turn_node.x} {turn_node.y}")
 
         response = int(input())
@@ -787,6 +832,11 @@ class Assignment:
             response = input()
             response_str += f"{response}; "
             info_x, info_y, info_status = response.split()
+            info_x, info_y = int(info_x), int(info_y)
+
+            logging.debug(f"({info_x}, {info_y}) in {self.field.thanos.get_perception_coords()}")
+            if (info_x, info_y) not in self.field.thanos.get_perception_coords():
+                continue
 
             node_type = NodeType(info_status)
             if node_type == NodeType.EMPTY:
@@ -794,7 +844,7 @@ class Assignment:
             elif node_type == NodeType.SHIELD:
                 self.field.thanos.give_shield()
             else:
-                self.field.get_node(int(info_x), int(info_y)).add_info(NodeType(info_status))
+                self.field.get_node(info_x, info_y).add_info(NodeType(info_status))
 
     def solve(self) -> None:
         """
@@ -802,8 +852,8 @@ class Assignment:
         """
         # uncomment algorythm you want
 
-        # path_length = self.astar_search()
-        path_length = self.backtracking_search()
+        path_length = self.astar_search()
+        # path_length = self.backtracking_search()
         self.end_solution(path_length)
 
 
