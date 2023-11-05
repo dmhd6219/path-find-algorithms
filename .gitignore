@@ -163,3 +163,4 @@ cython_debug/
 /generate_tests.py
 /tests/
 /testing_system.py
+/stats.py
