@@ -101,7 +101,7 @@ class Node:
         """
         return NodeType.PERCEPTION in self.type
 
-    def can_break_shield(self):
+    def can_break_shield(self) -> bool:
         """
         Check if this node represents a character that can break a shield.
 
@@ -292,7 +292,7 @@ class Node:
         """
         return self.x == other.x and self.y == other.y
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         """
         Compare two nodes based on their total cost (f).
 
@@ -408,12 +408,10 @@ class Map:
     Attributes:
         __map (list[list[Node]]): The map containing nodes.
         __thanos (Thanos): The Thanos character on the map.
-        __steps (int): The number of steps taken in the game.
         __stone_coords (tuple[int, int]): Initial coordinates of the stone.
     """
     __map: list[list[Node]]
     __thanos: Thanos
-    __steps: int
     __stone_coords: tuple[int, int]
 
     def __init__(self, perception_type: int, stone: tuple[int, int]):
@@ -428,7 +426,6 @@ class Map:
         self.__map = [[Node(x, y) for y in range(0, MAP_LENGTH + 1)] for x in range(0, MAP_LENGTH + 1)]
 
         self.__map[stone[0]][stone[1]].add_info(NodeType.STONE)
-        self.__steps = 0
         self.__stone_coords = stone
 
     def __repr__(self) -> str:
@@ -441,16 +438,6 @@ class Map:
         max_width = max([max(len(str(element)) for element in row) for row in self.__map])
 
         return "\n".join(" | ".join(str(element).ljust(max_width) for element in row) for row in self.__map)
-
-    @property
-    def steps(self):
-        """
-        Get the number of steps taken in the game.
-
-        Returns:
-            int: The number of steps.
-        """
-        return self.__steps
 
     @property
     def thanos(self) -> Thanos:
@@ -490,7 +477,6 @@ class Map:
             Node: The node that Thanos moved to.
         """
         move_coords = self.__thanos.move(move_x, move_y)
-        self.__steps += 1
         return self.__map[move_coords[0]][move_coords[1]]
 
     def is_safe_move(self, delta_x: int, delta_y: int) -> bool:
@@ -537,7 +523,8 @@ class Map:
 
         return moves
 
-    def get_path(self, start_node: Node, end_node: Node) -> list[Node]:
+    @staticmethod
+    def get_path(start_node: Node, end_node: Node) -> list[Node]:
         """
         Get the path from start to end node.
 
@@ -598,7 +585,7 @@ class Assignment:
         self.__min_distance = sys.maxsize * 2 + 1
 
     @property
-    def field(self):
+    def field(self) -> Map:
         """
         Get the game map.
 
@@ -608,7 +595,7 @@ class Assignment:
         return self.__field
 
     @property
-    def start_node(self):
+    def start_node(self) -> Node:
         """
         Get the starting node.
 
@@ -618,7 +605,7 @@ class Assignment:
         return self.__start_node
 
     @property
-    def end_node(self):
+    def end_node(self) -> Node:
         """
         Get the ending node.
 
@@ -768,7 +755,8 @@ class Assignment:
         visited.remove(current_node)
         self.make_turn(*thanos_position)
 
-    def end_solution(self, turns: int = -1) -> None:
+    @staticmethod
+    def end_solution(turns: int = -1) -> None:
         """
         End the game and print the number of turns taken.
 
